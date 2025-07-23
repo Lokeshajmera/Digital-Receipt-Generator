@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Receipt Generator</title>
+    <link rel="stylesheet" href="style4.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <!-- <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z'/></svg>" type="image/svg+xml"> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-receipt"></i> Digital Receipt Generator</h1>
+            <p>Professional receipts for your business</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Business Information Section -->
+            <section class="business-info-section">
+                <h2><i class="fas fa-building"></i> Business Information</h2>
+                <div class="form-group">
+                    <label for="businessName">Business Name *</label>
+                    <input type="text" id="businessName" placeholder="Enter your business name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="businessAddress">Address</label>
+                        <input type="text" id="businessAddress" placeholder="Business address">
+                    </div>
+                    <div class="form-group">
+                        <label for="businessGST">GST Number</label>
+                        <input type="text" id="businessGST" placeholder="GST Number">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="businessPhone">Phone</label>
+                        <input type="tel" id="businessPhone" placeholder="Phone number">
+                    </div>
+                    <div class="form-group">
+                        <label for="businessEmail">Email</label>
+                        <input type="email" id="businessEmail" placeholder="Business email">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Customer Information Section -->
+            <section class="customer-info-section">
+                <h2><i class="fas fa-user"></i> Customer Information</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customerName">Customer Name *</label>
+                        <input type="text" id="customerName" placeholder="Enter customer name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptDate">Date *</label>
+                        <input type="date" id="receiptDate" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customerEmail">Customer Email</label>
+                        <input type="email" id="customerEmail" placeholder="Customer email (for sending receipt)">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptNumber">Receipt Number</label>
+                        <input type="text" id="receiptNumber" placeholder="Auto-generated" readonly>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Items Section -->
+            <section class="items-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-shopping-cart"></i> Items</h2>
+                    <button type="button" class="btn-add-item" onclick="addItem()">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+                
+                <div class="items-container" id="itemsContainer">
+                    <div class="item-header">
+                        <div class="item-name">Item Name</div>
+                        <div class="item-quantity">Qty</div>
+                        <div class="item-price">Price (₹)</div>
+                        <div class="item-total">Total (₹)</div>
+                        <div class="item-actions">Action</div>
+                    </div>
+                </div>
+
+                <!-- Tax and Discount Settings -->
+                <div class="tax-discount-section">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="gstRate">GST Rate</label>
+                            <select id="gstRate" onchange="calculateTotals()">
+                                <option value="0">0% (No GST)</option>
+                                <option value="5">5% GST</option>
+                                <option value="12">12% GST</option>
+                                <option value="18" selected>18% GST</option>
+                                <option value="28">28% GST</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="discountType">Discount Type</label>
+                            <select id="discountType" onchange="calculateTotals()">
+                                <option value="none">No Discount</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="flat">Flat Amount (₹)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="discountValue">Discount Value</label>
+                            <input type="number" id="discountValue" placeholder="Enter discount value" min="0" step="0.01" onchange="calculateTotals()" disabled>
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty space for alignment -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="totals-section">
+                    <div class="totals-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">₹0.00</span>
+                    </div>
+                    <div class="totals-row" id="discountRow" style="display: none;">
+                        <span id="discountLabel">Discount:</span>
+                        <span id="discountAmount">-₹0.00</span>
+                    </div>
+                    <div class="totals-row">
+                        <span id="gstLabel">GST (18%):</span>
+                        <span id="gstAmount">₹0.00</span>
+                    </div>
+                    <div class="totals-row total-final">
+                        <span>Grand Total:</span>
+                        <span id="grandTotal">₹0.00</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions Section -->
+            <section class="actions-section">
+                <button type="button" class="btn-primary" onclick="generateReceipt()">
+                    <i class="fas fa-file-alt"></i> Generate Receipt
+                </button>
+                <button type="button" class="btn-secondary" onclick="downloadPDF()" id="downloadBtn" disabled>
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+                <button type="button" class="btn-secondary" onclick="emailReceipt()" id="emailBtn" disabled>
+                    <i class="fas fa-envelope"></i> Email Receipt
+                </button>
+                <button type="button" class="btn-secondary" onclick="printReceipt()" id="printBtn" disabled>
+                    <i class="fas fa-print"></i> Print Receipt
+                </button>
+            </section>
+        </div>
+
+        <!-- Receipt Preview -->
+        <div class="receipt-preview" id="receiptPreview" style="display: none;">
+            <div class="receipt" id="receipt">
+                <div class="receipt-header">
+                    <h2 id="receiptBusinessName"></h2>
+                    <div class="business-details">
+                        <div id="receiptBusinessAddress"></div>
+                        <div id="receiptBusinessContact"></div>
+                        <div id="receiptBusinessGST"></div>
+                    </div>
+                </div>
+
+                <div class="receipt-title">
+                    <h3>RECEIPT</h3>
+                </div>
+
+                <div class="receipt-info">
+                    <div class="receipt-info-row">
+                        <span>Receipt No:</span>
+                        <span id="receiptNumDisplay"></span>
+                    </div>
+                    <div class="receipt-info-row">
+                        <span>Date:</span>
+                        <span id="receiptDateDisplay"></span>
+                    </div>
+                    <div class="receipt-info-row">
+                        <span>Customer:</span>
+                        <span id="receiptCustomerName"></span>
+                    </div>
+                </div>
+
+                <div class="receipt-items">
+                    <table class="receipt-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receiptItemsBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="receipt-totals">
+                    <div class="receipt-total-row">
+                        <span>Subtotal:</span>
+                        <span id="receiptSubtotal"></span>
+                    </div>
+                    <div class="receipt-total-row" id="receiptDiscountRow" style="display: none;">
+                        <span id="receiptDiscountLabel">Discount:</span>
+                        <span id="receiptDiscountAmount">-₹0.00</span>
+                    </div>
+                    <div class="receipt-total-row">
+                        <span id="receiptGSTLabel">GST (18%):</span>
+                        <span id="receiptGST"></span>
+                    </div>
+                    <div class="receipt-total-row total-final">
+                        <span>Grand Total:</span>
+                        <span id="receiptGrandTotal"></span>
+                    </div>
+                </div>
+
+                <div id="receiptFooter" style="margin-top: 20px; font-size: 14px; text-align: center;">
+                    <p><strong>Thank you for your purchase!</strong></p>
+                    <p style="font-size: 12px;">
+                        <em>Terms & Conditions:</em><br>
+                        - Goods once sold will not be returned or exchanged.<br>
+                        - Please retain this receipt for future reference.<br>
+                        - Prices are inclusive of all applicable taxes.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div class="message" id="message"></div>
+    </div>
+
+    <style>
+  body {
+    background-image: url('https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1950&q=80'); 
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    font-family: Arial, sans-serif;
+  }
+
+  /* Optional overlay for readability */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.85); /* Slight white overlay */
+    z-index: -1;
+  }
+</style>
+
+
+    <!-- Script -->
+    <script src="script1.js"></script>
+</body>
+</html>
